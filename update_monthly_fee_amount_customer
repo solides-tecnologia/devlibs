@@ -1,0 +1,112 @@
+<?php
+# Created by @weslleylage
+# Update the monthly fee amount of the customer's on Superlogica
+# You can use these functions in your project as a Helper
+# Call function update_monthly_fee_amount_customer passing the id client in your system
+
+if( ! function_exists('superlogica_get_client_by_identifier') ){
+	function superlogica_get_client_by_identifier( $id ){
+		$url = "https://api.superlogica.net/v2/financeiro/clientes?identificador=" . $id;
+		$ch = curl_init(); 
+		curl_setopt( $ch, CURLOPT_URL, $url ); 
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, TRUE ); 
+		curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, TRUE ); 
+		curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, FALSE ); 
+		curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, FALSE ); 
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "GET" ); 
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json",
+		                                           "app_token: ".YOUR_SUPERLOGICA_APP_TOKEN,
+		                                           "access_token: ".YOUR_SUPERLOGICA_ACCESS_TOKEN,
+		                                           ) );
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+		$resp = json_decode( $response, TRUE );
+		
+		if( $resp ){
+			return $resp;
+		}else{
+			return FALSE;
+		}
+	}
+}
+
+if( ! function_exists('superlogica_get_monthly_fee_client') ){
+	function superlogica_get_monthly_fee_client( $superlogica_id_client ){
+		$url = "https://api.superlogica.net/v2/financeiro/recorrencias?CLIENTES=" . $superlogica_id_client;
+		$ch = curl_init(); 
+		curl_setopt( $ch, CURLOPT_URL, $url ); 
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, TRUE ); 
+		curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, TRUE ); 
+		curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, FALSE ); 
+		curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, FALSE ); 
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, "GET" ); 
+		curl_setopt( $ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json",
+		                                           "app_token: ".YOUR_SUPERLOGICA_APP_TOKEN,
+		                                           "access_token: ".YOUR_SUPERLOGICA_ACCESS_TOKEN,
+		                                           ) );
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+		$resp = json_decode( $response, TRUE );
+		
+		if( $resp ){
+			return $resp;
+		}else{
+			return FALSE;
+		}
+	}
+}
+
+if( ! function_exists( 'superlogica_update_monthly_fee_client' ) ){
+	function superlogica_update_monthly_fee_client( $data ){
+		$url = "https://api.superlogica.net/v2/financeiro/recorrencias";
+		$ch = curl_init();
+		curl_setopt( $ch, CURLOPT_URL, $url );
+		curl_setopt( $ch, CURLOPT_HTTPHEADER,
+						array("Content-Type: application/json",
+                               "app_token: " . YOUR_SUPERLOGICA_APP_TOKEN,
+                               "access_token: " . YOUR_SUPERLOGICA_ACCESS_TOKEN
+                        )
+					);
+		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, TRUE );
+		curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, TRUE );
+		curl_setopt( $ch, CURLOPT_CUSTOMREQUEST, 'PUT' );
+		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
+		curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, FALSE );
+		curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, FALSE );
+		$response = curl_exec( $ch );
+		curl_close( $ch );
+		if( $response ){
+			return json_decode( $response, TRUE );
+		}else{
+			return FALSE;
+		}
+	}
+}
+
+if( ! function_exists('update_monthly_fee_amount_customer') ){
+	function update_monthly_fee_amount_customer( $identifier_client = NULL, $value = "1.00"){
+		$client = superlogica_get_client_by_identifier( $identifier_client );
+		if( $client ){
+			$monthly_fee = superlogica_get_monthly_fee_client( $client[0]['id_sacado_sac'] );
+			if( $monthly_fee ){
+				$data = json_encode(
+					array(
+				        'ID_MENSALIDADE_MENS' => $monthly_fee[0]['id_mensalidade_mens'],
+				        'ST_QNTD_MENS' => "1",
+				        'ST_VALOR_MENS' => $value
+				    )
+				);
+				$update_monthly_fee = superlogica_update_monthly_fee_client( $data );
+				if( $update_monthly_fee ){
+					return "Success";
+				}else{
+					return "Error";
+				}
+			}else{
+				return 'Monthly fee not found';
+			}
+		}else{
+			return 'Client not found';
+		}
+	}
+}
